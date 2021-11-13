@@ -4,6 +4,7 @@ const cors = require('cors')
 const { MongoClient } = require('mongodb');
 require('dotenv').config()
 const port = process.env.PORT || 5000
+const ObjectId = require('mongodb').ObjectId
 //middle are
 app.use(cors())
 app.use(express.json())
@@ -35,6 +36,14 @@ async function run() {
             const product = req.body
             const result = await productCollection.insertOne(product)
             res.send(result)
+        })
+        //delete api for product delete 
+        app.delete('/products/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const result = await productCollection.deleteOne(query)
+            console.log('delete product', id)
+            res.json(result)
         })
 
         //post api for booked orders and save in database
