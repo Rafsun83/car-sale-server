@@ -5,6 +5,7 @@ const { MongoClient } = require('mongodb');
 require('dotenv').config()
 const port = process.env.PORT || 5000
 const ObjectId = require('mongodb').ObjectId
+const stripe = require('stripe')(process.env.STRIPE_SECRET)
 //middle are
 app.use(cors())
 app.use(express.json())
@@ -31,6 +32,16 @@ async function run() {
             const service = await cursor.toArray()
             res.send(service)
         })
+        //Get api for spacific product details using id
+        app.get('/products/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const result = await productCollection.findOne(query)
+            res.json(result)
+
+
+        })
+
         //post api for add product in database
         app.post('/products', async (req, res) => {
             const product = req.body
@@ -62,6 +73,32 @@ async function run() {
             const cursor = bookedorder.find(query)
             const order = await cursor.toArray()
             res.json(order)
+        })
+        //get api for spacific product order details
+
+        app.get('/bookedorders/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const result = await bookedorder.findOne(query)
+            res.json(result)
+
+
+        })
+        //put or update api for spacific order update for payment paid or unpaid
+        app.put('/bookedorders/:id', async (req, res) => {
+            const id = req.params.id
+            const payment = req.body
+            const filter = { _id: ObjectId(id) }
+            const options = { upsert: true }
+            const updateDoc = {
+                $set: {
+                    payment: payment
+                }
+            }
+            const result = await bookedorder.updateOne(filter, updateDoc, options)
+            console.log(result)
+            res.json(result)
+
         })
 
         //post api for review entry in database
@@ -115,6 +152,20 @@ async function run() {
             }
             res.json({ admin: isAdmin })
         })
+
+        //payment gateway api
+
+        app.post('/create-payment-intent', async (req, res) => {
+            const paymentInfo = req.body;
+            const amount = paymentInfo.price * 100
+            const paymentIntent = await stripe.paymentIntents.create({
+                currency: 'usd',
+                amount: amount,
+                payment_method_types: ['card']
+            })
+            res.json({ clientSecret: paymentIntent.client_secret })
+        })
+
 
     }
     finally {
